@@ -199,6 +199,18 @@ if [ ! -z "${MUMPS_DIR}" ]; then
         ${CONFOPTS} \
         -D DEAL_II_WITH_MUMPS:BOOL=ON \
         -D MUMPS_DIR=${MUMPS_DIR}"
+
+    # MUMPS (including PETSc-bundled static libraries) contains Fortran code.
+    # deal.II is configured as a C++ project, so we must pull in the Fortran
+    # runtime explicitly (otherwise libdmumps.a fails with missing _gfortran_*
+    # symbols at link time).
+    if [ ! -z "${FC}" ]; then
+        CONFOPTS="${CONFOPTS} -D MPI_Fortran_COMPILER=${FC}"
+        gfortran_library=$(${FC} -print-file-name=libgfortran 2>/dev/null || true)
+        if [ -n "${gfortran_library}" ] && [ "${gfortran_library}" != "libgfortran" ]; then
+            CONFOPTS="${CONFOPTS} -D DEAL_II_LINKER_FLAGS=-lgfortran"
+        fi
+    fi
 fi
 
 # scalapack
